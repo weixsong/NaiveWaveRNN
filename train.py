@@ -164,7 +164,7 @@ def main():
         lc_dim = hparams.num_mels
 
         assert hparams.upsampling_rate == hparams.hop_length
-        assert hparams.seqlen // hparams.upsampling_rate == 0
+        assert hparams.seqlen % hparams.upsampling_rate == 0
         assert np.cumprod(hparams.upsample_factors)[-1] == hparams.upsampling_rate
 
         lc_frames = hparams.seqlen // hparams.upsampling_rate + 2 * hparams.lc_pad
