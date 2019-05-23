@@ -21,11 +21,15 @@ hparams = tf.contrib.training.HParams(
 
     # network
     bits=9,
+    lc_pad=2,
     rnn_dims=512,
-    res_blocks=10,
-    fc_dims=512,
-    voc_upsample_factors=(16, 16),
-    seqlen=256*5,                       # sequence length for RNN
+    seqlen=256 * 5,                     # sequence length for RNN
     batch_size=32,                      # batch size
     upsampling_rate=256,                # same as hop_length
+
+    # transposed upsampling
+    res_blocks=10,
+    fc_dims=512,
+
+    test_lc='LJ001-0002.mel',
 )
