@@ -159,13 +159,19 @@ def main():
         sess = tf.Session(config=tf.ConfigProto(log_device_placement=False, allow_soft_placement=True))
         reader.start_threads()
 
-        seq_len = hparams.upsampling_rate * 5
+        seq_len = hparams.seqlen
         batch_size = hparams.batch_size
         lc_dim = hparams.num_mels
 
-        x_placeholder = tf.placeholder(dtype=tf.float32, shape=[batch_size, seq_len, 1])  # B*1800*1
-        y_placeholder = tf.placeholder(dtype=tf.float32, shape=[batch_size, seq_len])  # B*1800
-        lc_placeholder = tf.placeholder(dtype=tf.float32, shape=[batch_size, 9, lc_dim])  # B*9*80
+        assert hparams.upsampling_rate == hparams.hop_length
+        assert hparams.seqlen // hparams.upsampling_rate == 0
+        assert np.cumprod(hparams.upsample_factors)[-1] == hparams.upsampling_rate
+
+        lc_frames = hparams.seqlen // hparams.upsampling_rate + 2 * hparams.lc_pad
+
+        x_placeholder = tf.placeholder(dtype=tf.float32, shape=[batch_size, seq_len, 1])          # B*1800*1
+        y_placeholder = tf.placeholder(dtype=tf.float32, shape=[batch_size, seq_len])             # B*1800
+        lc_placeholder = tf.placeholder(dtype=tf.float32, shape=[batch_size, lc_frames, lc_dim])  # B*9*80
 
         wave_rnn = WaveRNN_Alternative()
         loss = wave_rnn.build_network(x_placeholder, y_placeholder, lc_placeholder)
@@ -185,13 +191,13 @@ def main():
         summaries = tf.summary.merge_all()
 
         # create test model
-        test_lcnet_placeholder = tf.placeholder(dtype=tf.float32, shape=[1, None, 80])
+        test_lcnet_placeholder = tf.placeholder(dtype=tf.float32, shape=[1, None, hparams.num_mels])
         # build lc network for transposed upsampling
         test_lc_upsample_net = wave_rnn.upsample_network(test_lcnet_placeholder)
 
         test_x_placeholder = tf.placeholder(dtype=tf.float32, shape=[1, 1], name='x')
-        test_mel_placeholder = tf.placeholder(dtype=tf.float32, shape=[1, 128], name='mel')
-        test_aux_placeholder = tf.placeholder(dtype=tf.float32, shape=[1, 128], name='aux')
+        test_mel_placeholder = tf.placeholder(dtype=tf.float32, shape=[1, hparams.lc_dims], name='mel')
+        test_aux_placeholder = tf.placeholder(dtype=tf.float32, shape=[1, hparams.lc_dims], name='aux')
 
         infer_ops = wave_rnn.inference(test_x_placeholder, test_mel_placeholder, test_aux_placeholder)
 
@@ -252,7 +258,7 @@ def main():
                     last_saved_step = step
 
                     # pad local condition before and after to make sure same length after the conv1d opertiona with filter_width=3
-                    lc = np.pad(test_lc, ((2, 2), (0, 0)), mode='constant')  # pad 2 frames in both start & end
+                    lc = np.pad(test_lc, ((hparams.lc_pad, hparams.lc_pad), (0, 0)), mode='constant')  # pad 2 frames in both start & end
                     lc = np.reshape(lc, [1, -1, hparams.num_mels])
 
                     # lc go through the lc_net
@@ -260,8 +266,8 @@ def main():
                         test_lcnet_placeholder: lc
                     })
 
-                    mel = np.reshape(mel, [-1, 128])
-                    aux = np.reshape(aux, [-1, 128])
+                    mel = np.reshape(mel, [-1, hparams.lc_dims])
+                    aux = np.reshape(aux, [-1, hparams.lc_dims])
 
                     # create generation model
                     print('generating samples')

@@ -129,7 +129,7 @@ class DataReader(object):
                 else:
                     pass
 
-                mel_offsets = [i for i in range(len(lc_features) - (self.lc_frames + 2))]      # 9 frames
+                mel_offsets = [i for i in range(len(lc_features) - (self.lc_frames +  + hp.lc_pad * 2))]  # 9 frames
                 audio_offsets = [(i + hp.lc_pad) * hp.upsampling_rate for i in mel_offsets]
 
                 for audio_index, mel_index in zip(audio_offsets, mel_offsets):

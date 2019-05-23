@@ -30,6 +30,10 @@ hparams = tf.contrib.training.HParams(
     # transposed upsampling
     res_blocks=10,
     fc_dims=512,
+    lc_dims=128,
+    conv_in_width=5,
+    upsample_factors=(16, 16),
+    upsample_widths=(3, 3),
 
     test_lc='LJ001-0002.mel',
 )
